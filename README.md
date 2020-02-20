@@ -16,15 +16,14 @@ reference : https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.ht
 aws cloudformation delete-stack --stack-name csye6225demo 
 
  ## Variables provided in CLI
- Template Name
- AWS Region
- VPC Name
- VPC CIDR
- Subnet1 CIDER
- subnet2 CIDER
- subnet3 CIDER
- name of the JSON file 
-
+ Template Name,  
+ AWS Region,  
+ VPC Name,  
+ VPC CIDR,  
+ Subnet1 CIDER,  
+ subnet2 CIDER,  
+ subnet3 CIDER,  
+ name of the JSON file,  
  ## Networking setup
  1. Create a VPC(vpc)
  2. Three subnets created in the VPC
