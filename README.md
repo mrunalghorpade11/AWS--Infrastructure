@@ -1,4 +1,4 @@
-# infrastructure
+# Infrastructure
 This JSON is as a cloud formation template 
 
 ## Prerequisit 
