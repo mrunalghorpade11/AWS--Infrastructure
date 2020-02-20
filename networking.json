@@ -34,9 +34,9 @@
             "CidrBlock": {
                "Ref": "VpcCIDR"
             },
-            "EnableDnsSupport": "false",
-            "EnableDnsHostnames": "false",
-            "InstanceTenancy": "dedicated",
+            "EnableDnsSupport": "true",
+            "EnableDnsHostnames": "true",
+            "InstanceTenancy": "default",
             "Tags": [
                {
                   "Key": "vpc",
@@ -56,7 +56,8 @@
                   "Value": "internetgateway"
                }
             ]
-         }
+         },
+         "DependsOn":"myVPC"
       },
       "myVPCGatewayAttachment": {
          "Type": "AWS::EC2::VPCGatewayAttachment",
@@ -67,7 +68,8 @@
             "VpcId": {
                "Ref": "myVPC"
             }
-         }
+         },
+         "DependsOn":"myVPC"
       },
       "PublicSubnet1": {
          "Type": "AWS::EC2::Subnet",
@@ -79,7 +81,7 @@
                "Fn::Select": [
                   "0",
                   {
-                     "Fn::GetAZs": "us-east-1"
+                     "Fn::GetAZs":""
                   }
                ]
             },
@@ -105,7 +107,7 @@
                "Fn::Select": [
                   "1",
                   {
-                     "Fn::GetAZs":{"Ref":"awsRegion"}
+                     "Fn::GetAZs":""
                   }
                ]
             },
@@ -131,7 +133,7 @@
                "Fn::Select": [
                   "2",
                   {
-                     "Fn::GetAZs": "us-east-1"
+                     "Fn::GetAZs":""
                   }
                ]
             },
