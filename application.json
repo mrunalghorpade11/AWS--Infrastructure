@@ -531,7 +531,7 @@
                         "echo export DB_HOST=",
                         {
                            "Fn::GetAtt": [
-                              "MyRDS",
+                              "MyRDShost",
                               "Endpoint.Address"
                            ]
                         },
@@ -539,7 +539,7 @@
                         "echo export DB_PORT=",
                         {
                            "Fn::GetAtt": [
-                              "MyRDS",
+                              "MyRDSport",
                               "Endpoint.Port"
                            ]
                         },
