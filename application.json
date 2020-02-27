@@ -50,6 +50,10 @@
       "DBNAME": {
          "Description": "Database name",
          "Type": "String"
+      },
+      "keyPairName":{
+         "Description": "key pair name",
+         "Type": "String"
       }
    },
    "Resources": {
@@ -543,7 +547,7 @@
                   ]
                }
             ],
-            "KeyName": "EC2KeyPAir",
+            "KeyName": {"Ref":"keyPairName"},
             "Tags": [
                {
                   "Key": "Ec2",
