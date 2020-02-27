@@ -42,6 +42,14 @@
       "MasterUserPassword": {
          "Description": "Master User password",
          "Type": "String"
+      },
+      "RDSAllocatedStorage": {
+         "Description": "RDS allocated storage",
+         "Type": "String"
+      },
+      "DBNAME": {
+         "Description": "Database name",
+         "Type": "String"
       }
    },
    "Resources": {
@@ -441,12 +449,16 @@
       "MyRDS": {
          "Type": "AWS::RDS::DBInstance",
          "Properties": {
-            "AllocatedStorage": "10",
+            "AllocatedStorage": {
+               "Ref": "RDSAllocatedStorage"
+            },
             "AllowMajorVersionUpgrade": false,
             "AutoMinorVersionUpgrade": true,
             "DBInstanceClass": "db.t3.micro",
             "DBInstanceIdentifier": "csye6225-spring2020",
-            "DBName": "CSYE6225",
+            "DBName": {
+               "Ref": "DBNAME"
+            },
             "DBSubnetGroupName": {
                "Ref": "MyDBSubnetGroup"
             },
@@ -581,7 +593,13 @@
                         "echo export AWS_REGION=",
                         {
                            "Ref":"awsRegion"
-                        }
+                        },
+                        " >> /etc/profile \n",
+                        "echo export DBNAME=",
+                        {
+                           "Ref": "DBNAME"
+                        },
+                        ">> /etc/profile \n"
                      ]
                   ]
                }
