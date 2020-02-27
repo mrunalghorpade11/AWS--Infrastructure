@@ -215,6 +215,7 @@
       },
       "myRoutes": {
          "Type": "AWS::EC2::Route",
+         "DependsOn": "myVPCGatewayAttachment",
          "Properties": {
             "DestinationCidrBlock": "0.0.0.0/0",
             "GatewayId": {
@@ -239,8 +240,29 @@
                      ],
                      "Effect": "Allow",
                      "Resource": [
-                        "arn:aws:s3:::MyS3",
-                        "arn:aws:s3:::MyS3/*"
+                        {
+                           "Fn::Join": [
+                              "",
+                              [
+                                 "arn:aws:s3:::",
+                                 {
+                                    "Ref": "MyS3"
+                                 }
+                              ]
+                           ]
+                        },
+                        {
+                           "Fn::Join": [
+                              "",
+                              [
+                                 "arn:aws:s3:::",
+                                 {
+                                    "Ref": "MyS3"
+                                 },
+                                 "/*"
+                              ]
+                           ]
+                        }
                      ]
                   }
                ]
@@ -261,7 +283,7 @@
                      "Effect": "Allow",
                      "Principal": {
                         "Service": [
-                           "s3.amazonaws.com"
+                           "ec2.amazonaws.com"
                         ]
                      }
                   }
@@ -293,25 +315,25 @@
                   "IpProtocol": "tcp",
                   "FromPort": 80,
                   "ToPort": 80,
-                  "CidrIp": "0.0.0.0/16"
+                  "CidrIp": "0.0.0.0/0"
                },
                {
                   "IpProtocol": "tcp",
                   "FromPort": 22,
                   "ToPort": 22,
-                  "CidrIp": "0.0.0.0/16"
+                  "CidrIp": "0.0.0.0/0"
                },
                {
                   "IpProtocol": "tcp",
                   "FromPort": 443,
                   "ToPort": 443,
-                  "CidrIp": "0.0.0.0/16"
+                  "CidrIp": "0.0.0.0/0"
                },
                {
                   "IpProtocol": "tcp",
                   "FromPort": 8080,
                   "ToPort": 8080,
-                  "CidrIp": "0.0.0.0/16"
+                  "CidrIp": "0.0.0.0/0"
                }
             ],
             "Tags": [
@@ -520,18 +542,15 @@
             "UserData": {
                "Fn::Base64": {
                   "Fn::Join": [
-                     "\n",
+                     "",
                      [
                         "#!/bin/bash \n",
                         "sudo apt-get update \n",
-                        "sudo apt install mariadb-server -y  \n",
-                        "mkdir Cloud \n",
-                        "cd Cloud \n",
                         "sudo apt install unzip \n",
                         "echo export DB_HOST=",
                         {
                            "Fn::GetAtt": [
-                              "MyRDShost",
+                              "MyRDS",
                               "Endpoint.Address"
                            ]
                         },
@@ -539,7 +558,7 @@
                         "echo export DB_PORT=",
                         {
                            "Fn::GetAtt": [
-                              "MyRDSport",
+                              "MyRDS",
                               "Endpoint.Port"
                            ]
                         },
@@ -556,12 +575,13 @@
                         " >> /etc/profile \n",
                         "echo export S3_BUCKET=",
                         {
-                           "Fn::GetAtt": [
-                              "MyS3",
-                              "Arn"
-                           ]
+                           "Ref":"MyS3"
                         },
-                        " >> /etc/profile \n"
+                        " >> /etc/profile \n",
+                        "echo export AWS_REGION=",
+                        {
+                           "Ref":"awsRegion"
+                        }
                      ]
                   ]
                }
