@@ -51,9 +51,29 @@
          "Description": "Database name",
          "Type": "String"
       },
-      "keyPairName":{
+      "keyPairName": {
          "Description": "key pair name",
          "Type": "String"
+      },
+      "PolicyForS3": {
+         "Description":"S3 managed policy name",
+         "Type":"String"
+      },
+      "circleciTos3PloicyName": {
+         "Description":"policy name for circle ci user to access s3 bucket",
+         "Type":"String"
+      },
+      "circleciCodeDeployPloicyName": {
+         "Description":"policy name for circleCi to use code Deploy",
+         "Type":"String"
+      },
+      "circleCiEC2AMI": {
+         "Description":"Policy for circle ci to access the AMIs",
+         "Type":"String"
+      },
+      "CodeDeployEC2toS3":{
+         "Description":"Policy for code deploy to put data from s3 to ec2",
+         "Type":"String"
       }
    },
    "Resources": {
@@ -279,7 +299,154 @@
                   }
                ]
             },
-            "ManagedPolicyName": "PolicyFors3"
+            "ManagedPolicyName": {"Ref":"PolicyForS3"}
+         }
+      },
+      "circlecitoS3policy": {
+         "Type": "AWS::IAM::ManagedPolicy",
+         "Properties": {
+            "Description": "circle ci user shoud be able to upload webapp on s3",
+            "PolicyDocument": {
+               "Version": "2012-10-17",
+               "Statement": [
+                  {
+                     "Action": [
+                        "s3:PutObject",
+                        "s3:ListBucket"
+                     ],
+                     "Resource": [
+                        "arn:aws:s3:::codedeploy.mrunal.ghorpade.me/*",
+                        "arn:aws:s3:::codedeploy.mrunal.ghorpade.me"
+                     ],
+                     "Effect": "Allow"
+                  }
+               ]
+            },
+            "ManagedPolicyName": {"Ref":"circleciTos3PloicyName"},
+            "Users": [
+               "circleci"
+            ]
+         }
+      },
+      "CircleCICodeDeployPolicy": {
+         "Type": "AWS::IAM::ManagedPolicy",
+         "Properties": {
+            "Description": "Policy for CircleCI to Call CodeDeploy",
+            "ManagedPolicyName": {"Ref":"circleciCodeDeployPloicyName"},
+            "Users": [
+               "circleci"
+            ],
+            "PolicyDocument": {
+               "Version": "2012-10-17",
+               "Statement": [
+                  {
+                     "Effect": "Allow",
+                     "Action": [
+                        "codedeploy:RegisterApplicationRevision",
+                        "codedeploy:GetApplicationRevision"
+                     ],
+                     "Resource": [
+                        "arn:aws:codedeploy:us-east-1:681276034545:application:csye6225-webapp"
+                     ]
+                  },
+                  {
+                     "Effect": "Allow",
+                     "Action": [
+                        "codedeploy:CreateDeployment",
+                        "codedeploy:GetDeployment"
+                     ],
+                     "Resource": [
+                        "*"
+                     ]
+                  },
+                  {
+                     "Effect": "Allow",
+                     "Action": [
+                        "codedeploy:GetDeploymentConfig"
+                     ],
+                     "Resource": [
+                        "arn:aws:codedeploy:us-east-1:681276034545:deploymentconfig:CodeDeployDefault.AllAtOnce"
+                     ]
+                  }
+               ]
+            }
+         }
+      },
+      "circleciec2ami": {
+         "Type": "AWS::IAM::ManagedPolicy",
+         "Properties": {
+            "Description": "CircleCI AMI policy",
+            "ManagedPolicyName":{"Ref":"circleCiEC2AMI"},
+            "Users": [
+               "circleci"
+            ],
+            "PolicyDocument": {
+               "Version": "2012-10-17",
+               "Statement": [
+                  {
+                     "Effect": "Allow",
+                     "Action": [
+                        "ec2:AttachVolume",
+                        "ec2:AuthorizeSecurityGroupIngress",
+                        "ec2:CopyImage",
+                        "ec2:CreateImage",
+                        "ec2:CreateKeypair",
+                        "ec2:CreateSecurityGroup",
+                        "ec2:CreateSnapshot",
+                        "ec2:CreateTags",
+                        "ec2:CreateVolume",
+                        "ec2:DeleteKeyPair",
+                        "ec2:DeleteSecurityGroup",
+                        "ec2:DeleteSnapshot",
+                        "ec2:DeleteVolume",
+                        "ec2:DeregisterImage",
+                        "ec2:DescribeImageAttribute",
+                        "ec2:DescribeImages",
+                        "ec2:DescribeInstances",
+                        "ec2:DescribeInstanceStatus",
+                        "ec2:DescribeRegions",
+                        "ec2:DescribeSecurityGroups",
+                        "ec2:DescribeSnapshots",
+                        "ec2:DescribeSubnets",
+                        "ec2:DescribeTags",
+                        "ec2:DescribeVolumes",
+                        "ec2:DetachVolume",
+                        "ec2:GetPasswordData",
+                        "ec2:ModifyImageAttribute",
+                        "ec2:ModifyInstanceAttribute",
+                        "ec2:ModifySnapshotAttribute",
+                        "ec2:RegisterImage",
+                        "ec2:RunInstances",
+                        "ec2:StopInstances",
+                        "ec2:TerminateInstances"
+                     ],
+                     "Resource": "*"
+                  }
+               ]
+            }
+         }
+      },
+      "codeDeployEC2S3": {
+         "Type": "AWS::IAM::ManagedPolicy",
+         "Properties": {
+            "Description": "Code deploy ec2 s3 user policy",
+            "ManagedPolicyName": {"Ref":"CodeDeployEC2toS3"},
+            "PolicyDocument": {
+               "Version": "2012-10-17",
+               "Statement": [
+                  {
+                     "Action": [
+                        "s3:Get*",
+                        "s3:List*"
+                     ],
+                     "Effect": "Allow",
+                     "Resource": [
+                        "arn:aws:s3:::codedeploy.mrunal.ghorpade.me",
+                        "arn:aws:s3:::codedeploy.mrunal.ghorpade.me/*"
+                     ]
+                  }
+               ]
+            }
          }
       },
       "myIAMRole": {
@@ -301,17 +468,20 @@
                   }
                ]
             },
-            "Description": "IAM role for S3",
+            "Description": "IAM role for ec2 to access s3 with/without code deploy",
             "ManagedPolicyArns": [
                {
                   "Ref": "S3ManagedPolicy"
+               },
+               {
+                  "Ref":"codeDeployEC2S3"
                }
             ],
             "Path": "/",
             "RoleName": "EC2-CSYE6225",
             "Tags": [
                {
-                  "Key": "myIAM",
+                  "Key": "Name",
                   "Value": "IAM for s3"
                }
             ]
@@ -547,11 +717,13 @@
                   ]
                }
             ],
-            "KeyName": {"Ref":"keyPairName"},
+            "KeyName": {
+               "Ref": "keyPairName"
+            },
             "Tags": [
                {
-                  "Key": "Ec2",
-                  "Value": "Ec2 for webapp"
+                  "Key": "Name",
+                  "Value": "csye6225-webapp"
                }
             ],
             "Tenancy": "default",
@@ -591,12 +763,12 @@
                         " >> /etc/profile \n",
                         "echo export S3_BUCKET=",
                         {
-                           "Ref":"MyS3"
+                           "Ref": "MyS3"
                         },
                         " >> /etc/profile \n",
                         "echo export AWS_REGION=",
                         {
-                           "Ref":"awsRegion"
+                           "Ref": "awsRegion"
                         },
                         " >> /etc/profile \n",
                         "echo export DBNAME=",
