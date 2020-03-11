@@ -56,24 +56,40 @@
          "Type": "String"
       },
       "PolicyForS3": {
-         "Description":"S3 managed policy name",
-         "Type":"String"
+         "Description": "S3 managed policy name",
+         "Type": "String"
       },
       "circleciTos3PloicyName": {
-         "Description":"policy name for circle ci user to access s3 bucket",
-         "Type":"String"
+         "Description": "policy name for circle ci user to access s3 bucket",
+         "Type": "String"
       },
       "circleciCodeDeployPloicyName": {
-         "Description":"policy name for circleCi to use code Deploy",
-         "Type":"String"
+         "Description": "policy name for circleCi to use code Deploy",
+         "Type": "String"
       },
       "circleCiEC2AMI": {
-         "Description":"Policy for circle ci to access the AMIs",
-         "Type":"String"
+         "Description": "Policy for circle ci to access the AMIs",
+         "Type": "String"
       },
-      "CodeDeployEC2toS3":{
-         "Description":"Policy for code deploy to put data from s3 to ec2",
-         "Type":"String"
+      "CodeDeployEC2toS3": {
+         "Description": "Policy for code deploy to put data from s3 to ec2",
+         "Type": "String"
+      },
+      "ApplicationName": {
+         "Description": "Code deploy application name",
+         "Type": "String"
+      },
+      "DeploymentGroupName": {
+         "Description": "Code deploy Deployment group name",
+         "Type": "String"
+      },
+      "EC2TagKey": {
+         "Description": "Tag of the EC2 instance which code deploy will deploy to",
+         "Type": "String"
+      },
+      "EC2TagValue": {
+         "Description": "Value of the EC2 tag that you want to deploy to",
+         "Type": "String"
       }
    },
    "Resources": {
@@ -299,7 +315,9 @@
                   }
                ]
             },
-            "ManagedPolicyName": {"Ref":"PolicyForS3"}
+            "ManagedPolicyName": {
+               "Ref": "PolicyForS3"
+            }
          }
       },
       "circlecitoS3policy": {
@@ -322,7 +340,9 @@
                   }
                ]
             },
-            "ManagedPolicyName": {"Ref":"circleciTos3PloicyName"},
+            "ManagedPolicyName": {
+               "Ref": "circleciTos3PloicyName"
+            },
             "Users": [
                "circleci"
             ]
@@ -332,7 +352,9 @@
          "Type": "AWS::IAM::ManagedPolicy",
          "Properties": {
             "Description": "Policy for CircleCI to Call CodeDeploy",
-            "ManagedPolicyName": {"Ref":"circleciCodeDeployPloicyName"},
+            "ManagedPolicyName": {
+               "Ref": "circleciCodeDeployPloicyName"
+            },
             "Users": [
                "circleci"
             ],
@@ -376,7 +398,9 @@
          "Type": "AWS::IAM::ManagedPolicy",
          "Properties": {
             "Description": "CircleCI AMI policy",
-            "ManagedPolicyName":{"Ref":"circleCiEC2AMI"},
+            "ManagedPolicyName": {
+               "Ref": "circleCiEC2AMI"
+            },
             "Users": [
                "circleci"
             ],
@@ -430,7 +454,9 @@
          "Type": "AWS::IAM::ManagedPolicy",
          "Properties": {
             "Description": "Code deploy ec2 s3 user policy",
-            "ManagedPolicyName": {"Ref":"CodeDeployEC2toS3"},
+            "ManagedPolicyName": {
+               "Ref": "CodeDeployEC2toS3"
+            },
             "PolicyDocument": {
                "Version": "2012-10-17",
                "Statement": [
@@ -474,7 +500,7 @@
                   "Ref": "S3ManagedPolicy"
                },
                {
-                  "Ref":"codeDeployEC2S3"
+                  "Ref": "codeDeployEC2S3"
                }
             ],
             "Path": "/",
@@ -483,6 +509,79 @@
                {
                   "Key": "Name",
                   "Value": "IAM for s3"
+               }
+            ]
+         }
+      },
+      "CodeDeployServiceRole": {
+         "Type": "AWS::IAM::Role",
+         "Properties": {
+            "AssumeRolePolicyDocument": {
+               "Version": "2012-10-17",
+               "Statement": [
+                  {
+                     "Effect": "Allow",
+                     "Principal": {
+                        "Service": [
+                           "codedeploy.amazonaws.com"
+                        ]
+                     },
+                     "Action": [
+                        "sts:AssumeRole"
+                     ]
+                  }
+               ]
+            },
+            "ManagedPolicyArns": [
+               "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
+            ],
+            "Path": "/"
+         }
+      },
+      "CodeDeployApplication": {
+         "Type": "AWS::CodeDeploy::Application",
+         "Properties": {
+            "ComputePlatform": "Server",
+            "ApplicationName": {
+               "Ref": "ApplicationName"
+            }
+         }
+      },
+      "DeploymentGroup": {
+         "Type": "AWS::CodeDeploy::DeploymentGroup",
+         "Properties": {
+            "ApplicationName": {
+               "Ref": "ApplicationName"
+            },
+            "DeploymentGroupName": {
+               "Ref": "DeploymentGroupName"
+            },
+            "ServiceRoleArn": {
+               "Fn::GetAtt": [
+                  "CodeDeployServiceRole",
+                  "Arn"
+               ]
+            },
+            "DeploymentStyle": {
+               "DeploymentOption": "WITHOUT_TRAFFIC_CONTROL",
+               "DeploymentType": "IN_PLACE"
+            },
+            "DeploymentConfigName": "CodeDeployDefault.AllAtOnce",
+            "AutoRollbackConfiguration": {
+               "Enabled": true,
+               "Events": [
+                  "DEPLOYMENT_FAILURE"
+               ]
+            },
+            "Ec2TagFilters": [
+               {
+                  "Key": {
+                     "Ref": "EC2TagKey"
+                  },
+                  "Value": {
+                     "Ref": "EC2TagValue"
+                  },
+                  "Type": "KEY_AND_VALUE"
                }
             ]
          }
@@ -722,8 +821,12 @@
             },
             "Tags": [
                {
-                  "Key": "Name",
-                  "Value": "csye6225-webapp"
+                  "Key": {
+                     "Ref": "EC2TagKey"
+                  },
+                  "Value": {
+                     "Ref": "EC2TagValue"
+                  }
                }
             ],
             "Tenancy": "default",
@@ -742,7 +845,7 @@
                               "Endpoint.Address"
                            ]
                         },
-                        " >> /etc/profile \n",
+                        " >> /etc/environment \n",
                         "echo export DB_PORT=",
                         {
                            "Fn::GetAtt": [
@@ -750,32 +853,32 @@
                               "Endpoint.Port"
                            ]
                         },
-                        " >> /etc/profile \n",
+                        " >> /etc/environment \n",
                         "echo export DB_USERNAME=",
                         {
                            "Ref": "MasterUsername"
                         },
-                        " >> /etc/profile \n",
+                        " >> /etc/environment \n",
                         "echo export DB_PASSWORD=",
                         {
                            "Ref": "MasterUserPassword"
                         },
-                        " >> /etc/profile \n",
+                        " >> /etc/environment \n",
                         "echo export S3_BUCKET=",
                         {
                            "Ref": "MyS3"
                         },
-                        " >> /etc/profile \n",
+                        " >> /etc/environment \n",
                         "echo export AWS_REGION=",
                         {
                            "Ref": "awsRegion"
                         },
-                        " >> /etc/profile \n",
+                        " >> /etc/environment \n",
                         "echo export DBNAME=",
                         {
                            "Ref": "DBNAME"
                         },
-                        ">> /etc/profile \n"
+                        ">> /etc/environment \n"
                      ]
                   ]
                }
