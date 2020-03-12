@@ -90,6 +90,10 @@
       "EC2TagValue": {
          "Description": "Value of the EC2 tag that you want to deploy to",
          "Type": "String"
+      },
+      "S3buckerName": {
+         "Description": "Name of the s3 bucket where we want build artifacts to be stored",
+         "Type": "String"
       }
    },
    "Resources": {
@@ -333,8 +337,29 @@
                         "s3:ListBucket"
                      ],
                      "Resource": [
-                        "arn:aws:s3:::codedeploy.mrunal.ghorpade.me/*",
-                        "arn:aws:s3:::codedeploy.mrunal.ghorpade.me"
+                        {
+                           "Fn::Join": [
+                              "",
+                              [
+                                 "arn:aws:s3:::",
+                                 {
+                                    "Ref": "S3buckerName"
+                                 },
+                                 "/*"
+                              ]
+                           ]
+                        },
+                        {
+                           "Fn::Join": [
+                              "",
+                              [
+                                 "arn:aws:s3:::",
+                                 {
+                                    "Ref": "S3buckerName"
+                                 }
+                              ]
+                           ]
+                        }
                      ],
                      "Effect": "Allow"
                   }
@@ -368,7 +393,18 @@
                         "codedeploy:GetApplicationRevision"
                      ],
                      "Resource": [
-                        "arn:aws:codedeploy:us-east-1:681276034545:application:csye6225-webapp"
+                        {
+                           "Fn::Join": [
+                              "",
+                              [
+                                 "arn:aws:codedeploy:us-east-1:",
+                                 {
+                                    "Ref": "AWS::AccountId"
+                                 },
+                                 ":application:csye6225-webapp"
+                              ]
+                           ]
+                        }
                      ]
                   },
                   {
@@ -387,7 +423,18 @@
                         "codedeploy:GetDeploymentConfig"
                      ],
                      "Resource": [
-                        "arn:aws:codedeploy:us-east-1:681276034545:deploymentconfig:CodeDeployDefault.AllAtOnce"
+                        {
+                           "Fn::Join": [
+                              "",
+                              [
+                                 "arn:aws:codedeploy:us-east-1:",
+                                 {
+                                    "Ref": "AWS::AccountId"
+                                 },
+                                 ":deploymentconfig:CodeDeployDefault.AllAtOnce"
+                              ]
+                           ]
+                        }
                      ]
                   }
                ]
@@ -467,8 +514,29 @@
                      ],
                      "Effect": "Allow",
                      "Resource": [
-                        "arn:aws:s3:::codedeploy.mrunal.ghorpade.me",
-                        "arn:aws:s3:::codedeploy.mrunal.ghorpade.me/*"
+                        {
+                           "Fn::Join": [
+                              "",
+                              [
+                                 "arn:aws:s3:::",
+                                 {
+                                    "Ref": "S3buckerName"
+                                 },
+                                 "/*"
+                              ]
+                           ]
+                        },
+                        {
+                           "Fn::Join": [
+                              "",
+                              [
+                                 "arn:aws:s3:::",
+                                 {
+                                    "Ref": "S3buckerName"
+                                 }
+                              ]
+                           ]
+                        }
                      ]
                   }
                ]
