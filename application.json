@@ -1,6 +1,6 @@
 {
    "AWSTemplateFormatVersion": "2010-09-09",
-   "Description": "Assignemnt 5 cf stack creation for network set up",
+   "Description": "Assignemnt 8 cf stack creation for Infrastructure set up",
    "Parameters": {
       "awsRegion": {
          "Description": "Add AWS region",
@@ -543,6 +543,7 @@
             }
          }
       },
+      
       "myIAMRole": {
          "Type": "AWS::IAM::Role",
          "Properties": {
@@ -569,7 +570,9 @@
                },
                {
                   "Ref": "codeDeployEC2S3"
-               }
+               },
+               "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+               "arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy"
             ],
             "Path": "/",
             "RoleName": "EC2-CSYE6225",
