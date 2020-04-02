@@ -95,13 +95,17 @@
          "Description": "Name of the s3 bucket where we want build artifacts to be stored",
          "Type": "String"
       },
-      "DomainName" :{
-         "Description":"Name of the domain",
-         "Type":"String"
+      "DomainName": {
+         "Description": "Name of the domain",
+         "Type": "String"
       },
-      "HostedZoneID":{
-         "Description":"Hosted Zone ID",
-         "Type":"String"
+      "HostedZoneID": {
+         "Description": "Hosted Zone ID",
+         "Type": "String"
+      },
+      "TopicName": {
+         "Description": "SNS topic name",
+         "Type": "String"
       }
    },
    "Resources": {
@@ -342,7 +346,8 @@
                   {
                      "Action": [
                         "s3:PutObject",
-                        "s3:ListBucket"
+                        "s3:ListBucket",
+                        "s3:Get*"
                      ],
                      "Resource": [
                         {
@@ -376,6 +381,30 @@
             "ManagedPolicyName": {
                "Ref": "circleciTos3PloicyName"
             },
+            "Users": [
+               "circleci"
+            ]
+         }
+      },
+      "LambdaExecutionPolicy": {
+         "Type": "AWS::IAM::ManagedPolicy",
+         "Properties": {
+            "Description": "circle ci user shoud be able to execute LAmbda function",
+            "PolicyDocument": {
+               "Version": "2012-10-17",
+               "Statement": [
+                  {
+                     "Effect": "Allow",
+                     "Action": [
+                        "lambda:*"
+                     ],
+                     "Resource": [
+                        "*"
+                     ]
+                  }
+               ]
+            },
+            "ManagedPolicyName": "LambdaExecutionPolicy",
             "Users": [
                "circleci"
             ]
@@ -651,19 +680,23 @@
                   "DEPLOYMENT_FAILURE"
                ]
             },
-            "AutoScalingGroups" : [{"Ref":"AutoScallingGroup"}],
+            "AutoScalingGroups": [
+               {
+                  "Ref": "AutoScallingGroup"
+               }
+            ],
             "LoadBalancerInfo": {
                "TargetGroupInfoList": [
-                   {
-                       "Name": {
-                           "Fn::GetAtt": [
-                               "LoadBalancerTargetGroup",
-                               "TargetGroupName"
-                           ]
-                       }
-                   }
+                  {
+                     "Name": {
+                        "Fn::GetAtt": [
+                           "LoadBalancerTargetGroup",
+                           "TargetGroupName"
+                        ]
+                     }
+                  }
                ]
-           },
+            },
             "Ec2TagFilters": [
                {
                   "Key": {
@@ -862,7 +895,7 @@
                   "Key": {
                      "Ref": "EC2TagKey"
                   },
-                  "PropagateAtLaunch" : true,
+                  "PropagateAtLaunch": true,
                   "Value": {
                      "Ref": "EC2TagValue"
                   }
@@ -916,7 +949,7 @@
                "Ref": "keyPairName"
             },
             "LaunchConfigurationName": "AutoScalingLaunchConfiguration",
-            "PlacementTenancy" : "default",
+            "PlacementTenancy": "default",
             "SecurityGroups": [
                {
                   "Ref": "ApplicationSecurityGroup"
@@ -970,6 +1003,16 @@
                         {
                            "Ref": "DBNAME"
                         },
+                        ">> /etc/environment \n",
+                        "echo export SQSurl=",
+                        {
+                           "Ref": "MySQS"
+                        },
+                        ">> /etc/environment \n",
+                        "echo export TopicArn=",
+                        {
+                           "Ref": "SNS"
+                        },
                         ">> /etc/environment \n"
                      ]
                   ]
@@ -1008,7 +1051,7 @@
             "Statistic": "Average",
             "Period": "300",
             "EvaluationPeriods": "2",
-            "Threshold": "5",
+            "Threshold": "20",
             "AlarmActions": [
                {
                   "Ref": "WebServerScaleUpPolicy"
@@ -1137,22 +1180,257 @@
             "VpcId": {
                "Ref": "myVPC"
             },
-            "Matcher" :{"HttpCode" : 200}
-            
+            "Matcher": {
+               "HttpCode": 200
+            }
          }
       },
-      "DNSRecord" : {
-         "Type" : "AWS::Route53::RecordSet",
-         "DependsOn" : "LoadBalancer",
-         "Properties" : {
-           "AliasTarget" :{
-             "DNSName" : {"Fn::GetAtt":["LoadBalancer","DNSName"]},
-             "EvaluateTargetHealth" : "true",
-             "HostedZoneId" : {"Fn::GetAtt":["LoadBalancer","CanonicalHostedZoneID"]}
-             },
-            "HostedZoneId":{"Ref":"HostedZoneID"},
-            "Name" : {"Ref":"DomainName"},
-            "Type" : "A"
+      "DNSRecord": {
+         "Type": "AWS::Route53::RecordSet",
+         "DependsOn": "LoadBalancer",
+         "Properties": {
+            "AliasTarget": {
+               "DNSName": {
+                  "Fn::GetAtt": [
+                     "LoadBalancer",
+                     "DNSName"
+                  ]
+               },
+               "EvaluateTargetHealth": "true",
+               "HostedZoneId": {
+                  "Fn::GetAtt": [
+                     "LoadBalancer",
+                     "CanonicalHostedZoneID"
+                  ]
+               }
+            },
+            "HostedZoneId": {
+               "Ref": "HostedZoneID"
+            },
+            "Name": {
+               "Ref": "DomainName"
+            },
+            "Type": "A"
+         }
+      },
+      "DynamoDBTable": {
+         "Type": "AWS::DynamoDB::Table",
+         "Properties": {
+            "AttributeDefinitions": [
+               {
+                  "AttributeName": "email_id",
+                  "AttributeType": "S"
+               }
+            ],
+            "KeySchema": [
+               {
+                  "AttributeName": "email_id",
+                  "KeyType": "HASH"
+               }
+            ],
+            "TableName": "csye6225",
+            "BillingMode": "PAY_PER_REQUEST",
+            "TimeToLiveSpecification": {
+               "AttributeName": "ttl",
+               "Enabled": true
+            },
+            "Tags": [
+               {
+                  "Key": "Name",
+                  "Value": "dynamoDBTable"
+               }
+            ]
+         }
+      },
+      "LambdaFunction": {
+         "Type": "AWS::Lambda::Function",
+         "DependsOn": "LambdaExecutionRole",
+         "Properties": {
+            "Code": {
+               "ZipFile": {
+                  "Fn::Join": [
+                     "\n",
+                     [
+                        "exports.emailService = function (event, context, callback){ console.log('Hello'); callback(null); }"
+                     ]
+                  ]
+               }
+            },
+            "FunctionName": "EmailService",
+            "Handler": "index.emailService",
+            "Environment": {
+               "Variables": {
+                  "DOMAIN_NAME": {
+                     "Fn::Sub": "${DomainName}"
+                  }
+               }
+            },
+            "Role": {
+               "Fn::GetAtt": [
+                  "LambdaExecutionRole",
+                  "Arn"
+               ]
+            },
+            "Runtime": "nodejs12.x",
+            "Timeout": 20
+         }
+      },
+      "LambdaInvokePermission": {
+         "Type": "AWS::Lambda::Permission",
+         "DependsOn": "SNS",
+         "Properties": {
+            "FunctionName": {
+               "Fn::GetAtt": [
+                  "LambdaFunction",
+                  "Arn"
+               ]
+            },
+            "Action": "lambda:InvokeFunction",
+            "Principal": "sns.amazonaws.com",
+            "SourceArn": {
+               "Ref": "SNS"
+            }
+         }
+      },
+      "LambdaExecutionRole": {
+         "Type": "AWS::IAM::Role",
+         "Properties": {
+            "AssumeRolePolicyDocument": {
+               "Version": "2012-10-17",
+               "Statement": [
+                  {
+                     "Effect": "Allow",
+                     "Principal": {
+                        "Service": "lambda.amazonaws.com"
+                     },
+                     "Action": "sts:AssumeRole"
+                  }
+               ]
+            },
+            "ManagedPolicyArns": [
+               "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+               "arn:aws:iam::aws:policy/AmazonSESFullAccess",
+               "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+            ]
+         }
+      },
+      "SNS": {
+         "Type": "AWS::SNS::Topic",
+         "DependsOn": "LambdaFunction",
+         "Properties": {
+            "Subscription": [
+               {
+                  "Endpoint": {
+                     "Fn::GetAtt": [
+                        "LambdaFunction",
+                        "Arn"
+                     ]
+                  },
+                  "Protocol": "lambda"
+               }
+            ],
+            "TopicName": {
+               "Ref": "TopicName"
+            }
+         }
+      },
+      "SNSPermission": {
+         "Type": "AWS::SNS::TopicPolicy",
+         "DependsOn": "SNS",
+         "Properties": {
+            "PolicyDocument": {
+               "Version": "2012-10-17",
+               "Statement": [
+                  {
+                     "Effect": "Allow",
+                     "Principal": {
+                        "AWS": [
+                           {
+                              "Fn::GetAtt": [
+                                 "myIAMRole",
+                                 "Arn"
+                              ]
+                           }
+                        ]
+                     },
+                     "Action": [
+                        "sns:Publish",
+                        "SNS:GetTopicAttributes",
+                        "SNS:SetTopicAttributes",
+                        "SNS:AddPermission",
+                        "SNS:RemovePermission",
+                        "SNS:DeleteTopic",
+                        "SNS:Subscribe",
+                        "SNS:ListSubscriptionsByTopic",
+                        "SNS:Publish",
+                        "SNS:Receive"
+                     ],
+                     "Resource": {
+                        "Ref": "SNS"
+                     }
+                  }
+               ]
+            },
+            "Topics": [
+               {
+                  "Ref": "SNS"
+               }
+            ]
+         }
+      },
+      "MySQS": {
+         "Type": "AWS::SQS::Queue",
+         "Properties": {
+            "MessageRetentionPeriod": 86400,
+            "QueueName": "webappQueue",
+            "Tags": [
+               {
+                  "Key": "Name",
+                  "Value": "SQS queue"
+               }
+            ]
+         }
+      },
+      "SQSQueuePolicy": {
+         "Type": "AWS::SQS::QueuePolicy",
+         "DependsOn": "MySQS",
+         "Properties": {
+            "PolicyDocument": {
+               "Version": "2012-10-17",
+               "Statement": [
+                  {
+                     "Effect": "Allow",
+                     "Principal": {
+                        "AWS": [
+                           {
+                              "Fn::GetAtt": [
+                                 "myIAMRole",
+                                 "Arn"
+                              ]
+                           }
+                        ]
+                     },
+                     "Action": [
+                        "sqs:SendMessage",
+                        "sqs:ReceiveMessage",
+                        "sqs:GetQueueAttributes",
+                        "sqs:GetQueueUrl",
+                        "sqs:DeleteMessage"
+                     ],
+                     "Resource": {
+                        "Fn::GetAtt": [
+                           "MySQS",
+                           "Arn"
+                        ]
+                     }
+                  }
+               ]
+            },
+            "Queues": [
+               {
+                  "Ref": "MySQS"
+               }
+            ]
          }
       }
    }
