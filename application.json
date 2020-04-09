@@ -106,6 +106,10 @@
       "TopicName": {
          "Description": "SNS topic name",
          "Type": "String"
+      },
+      "Certificate":{
+         "Description":"Certificate ARN",
+         "Type":"String"
       }
    },
    "Resources": {
@@ -843,6 +847,8 @@
             "DBSubnetGroupName": {
                "Ref": "MyDBSubnetGroup"
             },
+            "DBParameterGroupName" : {"Ref":"RDSParameterGroup"},
+            "CACertificateIdentifier" : "rds-ca-2019",
             "Engine": "MariaDB",
             "EngineVersion": "10.2.21",
             "MasterUsername": {
@@ -854,6 +860,7 @@
             "MultiAZ": false,
             "Port": "3306",
             "PubliclyAccessible": false,
+            "StorageEncrypted":true,
             "Tags": [
                {
                   "Key": "myRDSInstance",
@@ -867,6 +874,16 @@
             ]
          }
       },
+      "RDSParameterGroup":{
+         "Type" : "AWS::RDS::DBParameterGroup",
+         "Properties" : {
+             "Description" : "RDS parameter group",
+             "Family" : "MariaDB10.2",
+             "Parameters" : {
+                "performance_schema":"1"
+             }
+           }
+       },
       "IAMInstanceProfile": {
          "Type": "AWS::IAM::InstanceProfile",
          "Properties": {
@@ -962,6 +979,7 @@
                      [
                         "#!/bin/bash \n",
                         "sudo apt-get update \n",
+                        "sudo curl -o /home/ubuntu/rds-ca-2019-root.pem https://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem",
                         "sudo apt install unzip \n",
                         "echo export DB_HOST=",
                         {
@@ -1013,6 +1031,8 @@
                         {
                            "Ref": "SNS"
                         },
+                        ">> /etc/environment \n",
+                        "echo export Home_dir=/home/ubuntu/",
                         ">> /etc/environment \n"
                      ]
                   ]
@@ -1141,31 +1161,27 @@
                },
                {
                   "IpProtocol": "tcp",
-                  "FromPort": "80",
-                  "ToPort": "80",
+                  "FromPort": "443",
+                  "ToPort": "443",
                   "CidrIp": "0.0.0.0/0"
                }
             ]
          }
       },
-      "LoadBalancerListner": {
-         "Type": "AWS::ElasticLoadBalancingV2::Listener",
-         "Properties": {
-            "DefaultActions": [
-               {
-                  "Type": "forward",
-                  "TargetGroupArn": {
-                     "Ref": "LoadBalancerTargetGroup"
-                  }
-               }
-            ],
-            "LoadBalancerArn": {
-               "Ref": "LoadBalancer"
-            },
-            "Port": "80",
-            "Protocol": "HTTP"
+      "LoadBalancerListenerSSL" : {
+         "Type" : "AWS::ElasticLoadBalancingV2::Listener",
+         "Properties" : {
+           "Certificates" : [
+             {"CertificateArn" :{"Ref":"Certificate"}} ],
+           "DefaultActions" : [{
+             "Type" : "forward",
+             "TargetGroupArn" : { "Ref" : "LoadBalancerTargetGroup" }
+           }],
+           "LoadBalancerArn" : { "Ref" : "LoadBalancer" },
+           "Port" : "443",
+           "Protocol" : "HTTPS"
          }
-      },
+       },
       "LoadBalancerTargetGroup": {
          "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
          "Properties": {
