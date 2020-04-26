@@ -10,7 +10,7 @@ reference : https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.ht
  aws cloudformation create-stack \
   --stack-name csye6225demo \
   --parameters ParameterKey=InstanceTypeParameter,ParameterValue=value \
-  --template-body file://networking.json
+  --template-body file://application.json
 
 2. To Delete Cloud formation Stack
 aws cloudformation delete-stack --stack-name csye6225demo 
@@ -22,7 +22,28 @@ aws cloudformation delete-stack --stack-name csye6225demo
  VPC CIDR,  
  Subnet1 CIDER,  
  subnet2 CIDER,  
- subnet3 CIDER,  
+ subnet3 CIDER,
+ AMIID,
+ InstanceType,
+ DBNAME,
+ MasterUsername,
+ MasterUserPassword,
+ RDSAllocatedStorage,
+ keyPairName,
+ DeploymentGroupName,
+ ApplicationName,
+ EC2TagKey,
+ EC2TagValue,
+ PolicyForS3,
+ circleciTos3PloicyName,
+ circleciCodeDeployPloicyName,
+ circleCiEC2AMI,
+ CodeDeployEC2toS3,
+ S3buckerName,
+ DomainName,
+ HostedZoneID,
+ TopicName,
+ Certificate,
  name of the JSON file,  
  ## Networking setup
  1. Create a VPC(vpc)
